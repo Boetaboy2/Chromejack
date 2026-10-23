@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chromejack</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: one-screen street terminal. Left = the core you hack + stability and abilities. Right = chrome shop, firmware, legend reset. Single neon-dark world by choice. */
+:root {
+  --bg: #08050f;
+  --panel: #120a21;
+  --panel-2: #1a0f2e;
+  --line: #34205a;
+  --fg: #ece6ff;
+  --dim: #8f82b3;
+  --cyan: #19f3ff;
+  --magenta: #ff2a9d;
+  --yellow: #fcee0a;
+  --danger: #ff3b3b;
+  --font-ui: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Share Tech Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.4;
+  padding-block: 16px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background-image:
+    radial-gradient(calc(900px + var(--beat, 0) * 500px) calc(500px + var(--beat, 0) * 400px) at 15% -10%, rgba(255,42,157,calc(.16 + var(--beat, 0) * .5)), transparent 62%),
+    radial-gradient(calc(800px + var(--treb, 0) * 500px) calc(500px + var(--treb, 0) * 400px) at 100% 0%, rgba(25,243,255,calc(.12 + var(--treb, 0) * .55)), transparent 62%),
+    radial-gradient(700px 400px at 50% 110%, rgba(252,238,10,calc(var(--beat, 0) * .22)), transparent 65%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
+  background-attachment: fixed;
+}
+body.edge { --edge-tint: rgba(255,42,157,.10); }
+body.edge::after, body.psy::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+  background: radial-gradient(ellipse at center, transparent 55%, var(--edge-tint, rgba(255,59,59,.18)) 100%);
+}
+body.psy { --edge-tint: rgba(255,59,59,.28); }
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 16px; }
+h1 {
+  margin: 0; font-size: clamp(30px, 6vw, 46px); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1;
+  color: var(--fg); text-shadow: 2px 0 var(--magenta), -2px 0 var(--cyan);
+}
+.tag { margin: 6px 0 0; color: var(--dim); max-width: 46ch; }
+.legend-badge { font-family: var(--font-mono); color: var(--yellow); border: 1px solid var(--yellow); padding: 4px 10px; font-size: 13px; letter-spacing: .08em; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); padding: 16px; min-width: 0; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)); }
+.label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+.creds { font-family: var(--font-mono); font-size: clamp(34px, 8vw, 54px); color: var(--cyan); line-height: 1.05; text-shadow: 0 0 18px rgba(25,243,255,.45); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cps { font-family: var(--font-mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+.cps b { color: var(--yellow); font-weight: 400; }
+.corebox { position: relative; display: grid; place-items: center; padding: 18px 0 10px; }
+#core {
+  position: relative; width: min(260px, 70vw); aspect-ratio: 1; border: 0; background: transparent; cursor: pointer; padding: 0; color: var(--fg);
+  font-family: var(--font-ui); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none;
+}
+#core svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 0 calc(14px + var(--beat, 0) * 26px) rgba(255,42,157,.55)); transform: scale(calc(1 + var(--beat, 0) * .06)); transition: transform .06s; }
+#core:active svg { transform: scale(.95); }
+#core:focus-visible { outline: 2px solid var(--yellow); outline-offset: 6px; }
+#core[disabled] { cursor: not-allowed; }
+#core[disabled] svg { filter: grayscale(1) brightness(.5); }
+#core .txt { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+#core .txt b { font-size: 30px; letter-spacing: .24em; font-weight: 700; padding-left: .24em; }
+#core .txt span { font-family: var(--font-mono); font-size: 13px; color: var(--cyan); }
+.sandy-on #core svg { filter: drop-shadow(0 0 26px rgba(25,243,255,.9)); animation: pulse .5s infinite alternate; }
+@keyframes pulse { to { transform: scale(1.04); } }
+.float { position: absolute; font-family: var(--font-mono); color: var(--yellow); pointer-events: none; font-size: 20px; text-shadow: 0 0 8px rgba(252,238,10,.7); animation: rise .9s ease-out forwards; white-space: nowrap; z-index: 3; }
+@keyframes rise { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -70px); } }
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+#state { font-family: var(--font-mono); font-size: 13px; letter-spacing: .06em; }
+#state.ok { color: var(--cyan); } #state.edge { color: var(--magenta); } #state.psy { color: var(--danger); }
+.bar { position: relative; height: 16px; background: #0b0616; border: 1px solid var(--line); margin-top: 6px; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(90deg, var(--magenta), var(--cyan)); transition: width .15s linear; }
+.bar u { position: absolute; top: 0; bottom: 0; left: 40%; width: 2px; background: var(--yellow); }
+.hint { color: var(--dim); font-size: 12.5px; margin: 6px 0 0; }
+.abilities { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+@media (max-width: 420px) { .abilities { grid-template-columns: 1fr; } }
+button.btn {
+  font-family: var(--font-ui); font-weight: 600; font-size: 14px; color: var(--fg); background: var(--panel-2); border: 1px solid var(--line);
+  padding: 10px 12px; cursor: pointer; text-align: left; min-width: 0; touch-action: manipulation;
+}
+button.btn:hover:not([disabled]) { border-color: var(--cyan); }
+button.btn:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+button.btn[disabled] { opacity: .45; cursor: not-allowed; }
+button.btn small { display: block; font-weight: 400; color: var(--dim); font-size: 12px; margin-top: 2px; }
+button.btn.go { border-color: var(--cyan); }
+button.btn.live { border-color: var(--yellow); box-shadow: 0 0 12px rgba(252,238,10,.35); }
+.log { margin-top: 14px; font-family: var(--font-mono); font-size: 12.5px; color: var(--dim); min-height: 7.2em; display: flex; flex-direction: column; gap: 2px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.log div:first-child { color: var(--fg); }
+.shop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.qty { display: flex; gap: 4px; }
+.qty button { font-family: var(--font-mono); font-size: 13px; background: transparent; border: 1px solid var(--line); color: var(--dim); padding: 4px 10px; cursor: pointer; }
+.qty button[aria-pressed="true"] { color: var(--bg); background: var(--cyan); border-color: var(--cyan); }
+.qty button:focus-visible { outline: 2px solid var(--yellow); }
+.list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; width: 100%; align-items: center; }
+.item .nm { font-weight: 600; }
+.item .ds { grid-column: 1; color: var(--dim); font-size: 12.5px; font-weight: 400; }
+.item .own { font-family: var(--font-mono); color: var(--magenta); font-size: 20px; grid-row: 1 / span 2; grid-column: 2; text-align: right; font-variant-numeric: tabular-nums; }
+.item .cost { grid-column: 1 / -1; font-family: var(--font-mono); font-size: 13px; color: var(--cyan); font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.item .cost em { font-style: normal; color: var(--dim); }
+.item.poor .cost span:first-child { color: var(--danger); }
+.fw { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 10px; }
+.fw .empty { color: var(--dim); font-size: 13px; }
+.legend { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.legend p { margin: 0; color: var(--dim); font-size: 13px; }
+.legend button.btn { border-color: var(--yellow); }
+.legend button.btn.confirm { background: var(--yellow); color: #0a0612; }
+#shards { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+.shard {
+  position: absolute; pointer-events: auto; cursor: pointer; border: 1px solid var(--yellow); background: rgba(252,238,10,.12); color: var(--yellow);
+  font-family: var(--font-mono); font-size: 12px; padding: 8px 12px; letter-spacing: .08em; animation: blink 1s steps(2) infinite;
+  box-shadow: 0 0 16px rgba(252,238,10,.4);
+}
+@keyframes blink { 50% { opacity: .55; } }
+.hdr-r { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.music { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+.music .btn { padding: 6px 10px; font-size: 13px; }
+.music input[type=range] { width: 90px; accent-color: var(--magenta); }
+.music label.btn { display: inline-block; }
+.music input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.music label:focus-within { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.nowp { font-family: var(--font-mono); font-size: 12.5px; color: var(--cyan); max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.nowp:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { #core svg { transform: none !important; } }
+.foot { color: var(--dim); font-size: 12px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Chromejack</h1>
+      <p class="tag">Jack into the grid. Install chrome. Ride the edge without flatlining.</p>
+    </div>
+    <div class="hdr-r">
+      <div class="legend-badge" id="legendBadge">LEGEND x1.0</div>
+      <div class="music">
+        <button class="btn" id="musicBtn" type="button" aria-pressed="false">Music: off</button>
+        <input type="range" id="vol" min="0" max="100" value="45" aria-label="Music volume">
+        <label class="btn">Play my track<input type="file" id="trackIn" accept="audio/*"></label>
+      </div>
+      <div class="nowp" id="nowp" aria-live="polite"></div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" id="left" aria-label="Core">
+      <div class="label">Creds</div>
+      <div class="creds" id="creds">0</div>
+      <div class="cps"><b id="cps">0</b> creds/sec <span id="mults"></span></div>
+
+      <div class="corebox" id="corebox">
+        <button id="core" type="button" aria-label="Hack the core">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <polygon points="100,6 182,53 182,147 100,194 18,147 18,53" fill="#1a0f2e" stroke="#ff2a9d" stroke-width="3"/>
+            <polygon points="100,28 163,64 163,136 100,172 37,136 37,64" fill="none" stroke="#19f3ff" stroke-width="1.5" stroke-dasharray="6 5"/>
+            <path d="M60 100h30l10-26 14 52 10-26h16" fill="none" stroke="#fcee0a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+          <span class="txt"><b>HACK</b><span id="clickval">+1</span></span>
+        </button>
+      </div>
+
+      <div class="meter-head">
+        <span class="label">Stability</span>
+        <span id="state" class="ok">STABLE</span>
+      </div>
+      <div class="bar" role="progressbar" aria-label="Stability" aria-valuemin="0" aria-valuemax="100" id="barwrap"><i id="bar"></i><u></u></div>
+      <p class="hint">Chrome wears you down. Below the yellow line you get an Edge bonus of +50% output. At zero you go cyberpsycho and lose signal.</p>
+
+      <div class="abilities">
+        <button class="btn" id="sandy" type="button">Time Dilation<small id="sandyS">Ready</small></button>
+        <button class="btn" id="inhib" type="button">Inhibitor Dose<small id="inhibS"></small></button>
+      </div>
+
+      <div class="log" id="log" aria-live="polite"></div>
+    </section>
+
+    <section class="panel" aria-label="Shop">
+      <div class="shop-head">
+        <div class="label">Chrome</div>
+        <div class="qty" role="group" aria-label="Buy amount">
+          <button type="button" data-q="1" aria-pressed="true">x1</button>
+          <button type="button" data-q="10" aria-pressed="false">x10</button>
+          <button type="button" data-q="max" aria-pressed="false">MAX</button>
+        </div>
+      </div>
+      <div class="list" id="chrome"></div>
+
+      <div class="label" style="margin-top:20px">Black market firmware</div>
+      <div class="fw" id="fw"></div>
+
+      <div class="label" style="margin-top:20px">Legend</div>
+      <div class="legend">
+        <p id="legendTxt"></p>
+        <button class="btn" id="reborn" type="button" disabled>Flatline and be reborn</button>
+      </div>
+    </section>
+  </div>
+  <div class="foot">Progress saves in this browser. The score is synthesized live; your own tracks play from your device only.</div>
+</div>
+<div id="shards"></div>
+
+<script>
+(function () {
+  var CH = [
+    { n: "Neural Splice", d: "Cheap jack for cheap gigs.", base: 15, cps: 0.5, hum: 0.3 },
+    { n: "Optic Mod", d: "Zoom, scan, tag every mark.", base: 110, cps: 3, hum: 0.5 },
+    { n: "Gorilla Arms", d: "Breaks doors and ice alike.", base: 600, cps: 14, hum: 0.8 },
+    { n: "Reflex Booster", d: "Everything moves in slow motion.", base: 3500, cps: 60, hum: 1.2 },
+    { n: "Spine Rig", d: "Runs a dozen daemons at once.", base: 18000, cps: 250, hum: 2 },
+    { n: "Full Skeleton", d: "Steel bones. Soft mind.", base: 95000, cps: 1100, hum: 3 },
+    { n: "Black ICE Daemon", d: "Hostile code on a leash.", base: 600000, cps: 5600, hum: 4.5 },
+    { n: "Orbital Uplink", d: "Your head is a satellite now.", base: 4500000, cps: 32000, hum: 7 }
+  ];
+  var UP = [
+    { id: "deck", n: "Better Cyberdeck", d: "Hack power x2", cost: 120, t: "click", v: 2 },
+    { id: "ghost", n: "Ghost Protocol", d: "Each hack also pays 5% of your creds/sec", cost: 2500, t: "ghost", v: 0.05 },
+    { id: "fence", n: "Back-alley Fence", d: "All output x1.25", cost: 6000, t: "all", v: 1.25 },
+    { id: "over", n: "Overclocked Deck", d: "Hack power x3", cost: 40000, t: "click", v: 3 },
+    { id: "route", n: "Rerouted Trace", d: "All output x1.5", cost: 350000, t: "all", v: 1.5 },
+    { id: "ripper", n: "Underground Ripper Clinic", d: "Inhibitors restore 50 instead of 35", cost: 900000, t: "inh", v: 50 },
+    { id: "king", n: "Shadow Broker Pact", d: "All output x2", cost: 8000000, t: "all", v: 2 }
+  ];
+  var FLAVOR = [
+    "A fixer pings you: new gig, clean payout.",
+    "Neon rain on the overpass. Your optics fog up.",
+    "Corp trace bounced off a decoy node.",
+    "Someone sold your handle on the market. Again.",
+    "Street doc says you're running hot.",
+    "A drone follows you for three blocks, then gives up.",
+    "You taste copper. That's new.",
+    "Static in your ears hums a tune you don't know."
+  ];
+  var KEY = "chromejack.v1";
+  function fresh() {
+    return { creds: 0, run: 0, all: 0, chrome: CH.map(function () { return 0; }), up: [], stab: 100, psy: 0, episodes: 0, sandy: 0, sandyCd: 0, inhCd: 0, lp: 0 };
+  }
+  var S = fresh();
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) {
+      var p = JSON.parse(raw);
+      for (var k in S) if (p[k] !== undefined) S[k] = p[k];
+      while (S.chrome.length < CH.length) S.chrome.push(0);
+    }
+  } catch (e) {}
+  var qty = "1", pendingReborn = 0, shardTimer = 20 + Math.random() * 20, flavorTimer = 25, saveTimer = 0, logLines = [];
+
+  function $(id) { return document.getElementById(id); }
+  var SUF = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx"];
+  function fmt(n) {
+    if (!isFinite(n)) return "0";
+    if (n < 1000) return n < 10 ? n.toFixed(1).replace(/\.0$/, "") : String(Math.floor(n));
+    var i = Math.min(SUF.length - 1, Math.floor(Math.log10(n) / 3));
+    var v = n / Math.pow(1000, i);
+    return (v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.floor(v)) + SUF[i];
+  }
+  function has(id) { return S.up.indexOf(id) >= 0; }
+  function load() { var L = 0; for (var i = 0; i < CH.length; i++) L += S.chrome[i] * CH[i].hum; return L; }
+  function mult() {
+    var m = 1 + 0.1 * S.lp;
+    UP.forEach(function (u) { if (u.t === "all" && has(u.id)) m *= u.v; });
+    if (S.psy <= 0 && S.stab < 40) m *= 1.5;
+    if (S.sandy > 0) m *= 3;
+    return m;
+  }
+  function baseCps() { var c = 0; for (var i = 0; i < CH.length; i++) c += S.chrome[i] * CH[i].cps; return c; }
+  function cps() { return S.psy > 0 ? 0 : baseCps() * mult(); }
+  function clickPower() {
+    var c = 1;
+    UP.forEach(function (u) { if (u.t === "click" && has(u.id)) c *= u.v; });
+    if (has("ghost")) c += baseCps() * mult() * 0.05;
+    c *= 1 + 0.1 * S.lp;
+    if (S.psy <= 0 && S.stab < 40) c *= 1.5;
+    if (S.sandy > 0) c *= 5;
+    return c;
+  }
+  function inhGain() { return has("ripper") ? 50 : 35; }
+  function inhCost() { return 100 + baseCps() * mult() * 15; }
+  function costFor(i, n) { var b = CH[i].base * Math.pow(1.15, S.chrome[i]); return b * (Math.pow(1.15, n) - 1) / 0.15; }
+  function bulk(i) {
+    if (qty !== "max") return Number(qty);
+    var n = 0, budget = S.creds;
+    while (n < 500 && costFor(i, n + 1) <= budget) n++;
+    return Math.max(1, n);
+  }
+  function log(t) { logLines.unshift(t); if (logLines.length > 6) logLines.pop(); renderLog(); }
+  function renderLog() { $("log").innerHTML = logLines.map(function (l) { return "<div>&gt; " + l.replace(/</g, "&lt;") + "</div>"; }).join(""); }
+
+  // Build shop once
+  var chromeEls = CH.map(function (c, i) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "btn item";
+    b.innerHTML = '<span class="nm">' + c.n + '</span><span class="own">0</span><span class="ds">' + c.d + '</span>' +
+      '<span class="cost"><span class="price"></span><em class="info"></em></span>';
+    b.addEventListener("click", function () {
+      var n = bulk(i), cost = costFor(i, n);
+      if (S.creds >= cost) { S.creds -= cost; S.chrome[i] += n; log("Installed " + n + " x " + c.n + "."); }
+    });
+    $("chrome").appendChild(b);
+    return b;
+  });
+  var fwEls = {};
+  UP.forEach(function (u) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "btn item";
+    b.innerHTML = '<span class="nm">' + u.n + '</span><span class="own"></span><span class="ds">' + u.d + '</span><span class="cost"><span class="price">' + fmt(u.cost) + ' creds</span></span>';
+    b.addEventListener("click", function () {
+      if (!has(u.id) && S.creds >= u.cost) { S.creds -= u.cost; S.up.push(u.id); log("Flashed firmware: " + u.n + "."); }
+    });
+    $("fw").appendChild(b);
+    fwEls[u.id] = b;
+  });
+  var noFw = document.createElement("div"); noFw.className = "empty"; noFw.textContent = "Nothing on offer yet. Earn more creds."; $("fw").appendChild(noFw);
+
+  document.querySelectorAll(".qty button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      qty = b.getAttribute("data-q");
+      document.querySelectorAll(".qty button").forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+    });
+  });
+
+  // Core click
+  $("core").addEventListener("click", function (e) {
+    if (S.psy > 0) return;
+    var g = clickPower();
+    S.creds += g; S.run += g; S.all += g;
+    var box = $("corebox"), r = box.getBoundingClientRect();
+    var x = e.clientX ? e.clientX - r.left : r.width / 2;
+    var y = e.clientY ? e.clientY - r.top : r.height / 2;
+    x += (Math.random() - 0.5) * 40;
+    var f = document.createElement("span"); f.className = "float"; f.textContent = "+" + fmt(g);
+    f.style.left = x + "px"; f.style.top = y + "px";
+    box.appendChild(f);
+    setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 900);
+    while (box.querySelectorAll(".float").length > 14) box.removeChild(box.querySelector(".float"));
+  });
+
+  $("sandy").addEventListener("click", function () {
+    if (S.sandy > 0 || S.sandyCd > 0 || S.psy > 0) return;
+    S.sandy = 12; S.sandyCd = 50; log("Time dilation online. The world crawls.");
+  });
+  $("inhib").addEventListener("click", function () {
+    var c = inhCost();
+    if (S.inhCd > 0 || S.creds < c || S.psy > 0) return;
+    S.creds -= c; S.inhCd = 4; S.stab = Math.min(100, S.stab + inhGain()); log("Inhibitor dose taken. The shaking stops.");
+  });
+
+  // Reborn
+  var rebornTimer = null;
+  function lpGain() { return Math.floor(Math.sqrt(S.run / 1e6)); }
+  $("reborn").addEventListener("click", function () {
+    var g = lpGain();
+    if (g < 1) return;
+    if (!pendingReborn) {
+      pendingReborn = 1; clearTimeout(rebornTimer);
+      rebornTimer = setTimeout(function () { pendingReborn = 0; }, 4000);
+      return;
+    }
+    pendingReborn = 0;
+    var keep = S.lp + g, all = S.all, ep = S.episodes;
+    S = fresh(); S.lp = keep; S.all = all; S.episodes = ep;
+    logLines = []; log("You flatlined. The streets remember you. +" + g + " Legend.");
+  });
+
+  // Shards
+  function spawnShard() {
+    if (document.hidden) return;
+    var el = document.createElement("div"); el.className = "shard"; el.setAttribute("role", "button"); el.tabIndex = 0;
+    el.textContent = "DATA SHARD";
+    var w = window.innerWidth, h = window.innerHeight;
+    el.style.left = Math.floor(20 + Math.random() * Math.max(10, w - 160)) + "px";
+    el.style.top = Math.floor(80 + Math.random() * Math.max(10, h - 160)) + "px";
+    function take() {
+      if (!el.parentNode) return;
+      var g = Math.max(cps() * 45, clickPower() * 40, 60);
+      S.creds += g; S.run += g; S.all += g;
+      log("Cracked a data shard: +" + fmt(g) + " creds.");
+      el.parentNode.removeChild(el);
+    }
+    el.addEventListener("click", take);
+    el.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") take(); });
+    $("shards").appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 9000);
+  }
+
+  // Render
+  function render() {
+    var c = cps();
+    $("creds").textContent = fmt(S.creds);
+    $("cps").textContent = fmt(c);
+    var tags = [];
+    if (S.psy <= 0 && S.stab < 40) tags.push("EDGE");
+    if (S.sandy > 0) tags.push("DILATED");
+    $("mults").textContent = tags.length ? "[" + tags.join(" + ") + "]" : "";
+    $("clickval").textContent = S.psy > 0 ? "NO SIGNAL" : "+" + fmt(clickPower());
+    $("core").disabled = S.psy > 0;
+    $("legendBadge").textContent = "LEGEND x" + (1 + 0.1 * S.lp).toFixed(1);
+
+    var st = $("state");
+    if (S.psy > 0) { st.className = "psy"; st.textContent = "CYBERPSYCHOSIS " + Math.ceil(S.psy) + "s"; }
+    else if (S.stab < 40) { st.className = "edge"; st.textContent = "ON THE EDGE +50%"; }
+    else { st.className = "ok"; st.textContent = "STABLE"; }
+    var pct = S.psy > 0 ? 0 : Math.max(0, Math.min(100, S.stab));
+    $("bar").style.width = pct + "%";
+    $("barwrap").setAttribute("aria-valuenow", Math.round(pct));
+    document.body.classList.toggle("edge", S.psy <= 0 && S.stab < 40);
+    document.body.classList.toggle("psy", S.psy > 0);
+    Music.mood(S.psy > 0 ? 2 : (S.stab < 40 ? 1 : 0));
+    document.body.classList.toggle("sandy-on", S.sandy > 0);
+    document.querySelector(".wrap").classList.toggle("sandy-on", S.sandy > 0);
+
+    var sb = $("sandy"), ss = $("sandyS");
+    if (S.sandy > 0) { ss.textContent = "Active " + Math.ceil(S.sandy) + "s: x3 output, x5 hack, drains faster"; sb.className = "btn live"; sb.disabled = true; }
+    else if (S.sandyCd > 0) { ss.textContent = "Recharging " + Math.ceil(S.sandyCd) + "s"; sb.className = "btn"; sb.disabled = true; }
+    else { ss.textContent = "Ready: 12s of x3 output and x5 hack"; sb.className = "btn go"; sb.disabled = S.psy > 0; }
+
+    var ic = inhCost(), ib = $("inhib");
+    $("inhibS").textContent = (S.inhCd > 0 ? "Cooling " + Math.ceil(S.inhCd) + "s" : "+" + inhGain() + " stability for " + fmt(ic) + " creds");
+    ib.disabled = S.inhCd > 0 || S.creds < ic || S.psy > 0;
+    ib.className = "btn" + (!ib.disabled ? " go" : "");
+
+    CH.forEach(function (ch, i) {
+      var n = bulk(i), cost = costFor(i, n), el = chromeEls[i];
+      el.querySelector(".own").textContent = S.chrome[i];
+      el.querySelector(".price").textContent = fmt(cost) + " creds" + (n > 1 ? " (x" + n + ")" : "");
+      el.querySelector(".info").textContent = "+" + fmt(ch.cps * mult()) + "/s each, load " + ch.hum;
+      el.classList.toggle("poor", S.creds < cost);
+    });
+    var shown = 0;
+    UP.forEach(function (u) {
+      var el = fwEls[u.id];
+      var vis = !has(u.id) && (S.creds >= u.cost * 0.4 || S.all >= u.cost * 0.4);
+      el.hidden = !vis;
+      if (vis) { shown++; el.classList.toggle("poor", S.creds < u.cost); }
+    });
+    noFw.hidden = shown > 0;
+
+    var g = lpGain();
+    var rb = $("reborn");
+    $("legendTxt").textContent = g >= 1
+      ? "Wipe your chrome and creds. Gain " + g + " Legend, each worth +10% to everything, forever."
+      : "Earn 1M creds in one run to unlock a rebirth. This run: " + fmt(S.run) + " of 1M.";
+    rb.disabled = g < 1;
+    rb.className = "btn" + (pendingReborn ? " confirm" : "");
+    rb.firstChild.textContent = pendingReborn ? "Confirm: wipe everything and gain " + g + " Legend" : "Flatline and be reborn";
+  }
+
+  var Music = (function () {
+    var an = null, fd = null, beat = 0, treb = 0, trackName = "", ctx = null, master, filt, noise, playing = false, step = 0, nextT = 0, timer = null, mode = 0, vol = 0.45, el = null, url = null;
+    var BPM = 104, SD = 60 / BPM / 4;
+    var ROOTS = [45, 41, 48, 43], ARP = [0, 7, 12, 7, 0, 7, 12, 19];
+    function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+    function init() {
+      if (ctx) return true;
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      ctx = new AC();
+      master = ctx.createGain(); master.gain.value = vol * 0.5; master.connect(ctx.destination);
+      an = ctx.createAnalyser(); an.fftSize = 512; an.smoothingTimeConstant = 0.6; fd = new Uint8Array(an.frequencyBinCount); master.connect(an);
+      requestAnimationFrame(loop);
+      filt = ctx.createBiquadFilter(); filt.type = "lowpass"; filt.frequency.value = 1400; filt.Q.value = 6; filt.connect(master);
+      var len = ctx.sampleRate, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      noise = buf;
+      return true;
+    }
+    function tone(type, f, t, dur, g, dest, det) {
+      var o = ctx.createOscillator(), a = ctx.createGain();
+      o.type = type; o.frequency.value = f; if (det) o.detune.value = det;
+      a.gain.setValueAtTime(0.0001, t);
+      a.gain.exponentialRampToValueAtTime(g, t + 0.01);
+      a.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(a); a.connect(dest || filt); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function kick(t) {
+      var o = ctx.createOscillator(), a = ctx.createGain();
+      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.14);
+      a.gain.setValueAtTime(0.9, t); a.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      o.connect(a); a.connect(master); o.start(t); o.stop(t + 0.25);
+    }
+    function hit(t, hp, dur, g) {
+      var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), a = ctx.createGain();
+      s.buffer = noise; f.type = "highpass"; f.frequency.value = hp;
+      a.gain.setValueAtTime(g, t); a.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(a); a.connect(master); s.start(t); s.stop(t + dur + 0.02);
+    }
+    function sched(s, t) {
+      var bar = Math.floor(s / 16) % 4, i = s % 16, root = ROOTS[bar];
+      var det = mode === 2 ? (Math.random() * 60 - 30) : 0;
+      if (i === 0) {
+        [-7, 0, 7].forEach(function (c) { tone("sawtooth", hz(root + 24 + (c ? 0 : 0)), t, SD * 16, 0.05, filt, c * 3 + det); });
+        tone("triangle", hz(root + 12), t, SD * 16, 0.08, filt, 0);
+      }
+      if (i % 2 === 0) tone("sawtooth", hz(root), t, SD * 1.8, 0.2, filt, det);
+      if (mode !== 2 || i % 4 === 0) tone("square", hz(root + 24 + ARP[i % 8]), t, SD * 0.9, mode === 1 ? 0.07 : 0.045, filt, det);
+      if (i % 4 === 0) kick(t);
+      if (i === 4 || i === 12) hit(t, 1800, 0.16, 0.25);
+      if (i % 4 === 2) hit(t, 7000, 0.05, mode === 1 ? 0.2 : 0.12);
+      if (mode === 1 && i % 2 === 1) hit(t, 8000, 0.03, 0.08);
+    }
+    function pump() {
+      while (nextT < ctx.currentTime + 0.2) { sched(step, nextT); nextT += SD; step++; }
+    }
+    function stopTrack() {
+      if (el) { try { el.pause(); } catch (e) {} el = null; }
+      if (url) { try { URL.revokeObjectURL(url); } catch (e) {} url = null; }
+      trackName = ""; applyVol();
+    }
+    function applyVol() { if (master) master.gain.value = el ? vol : vol * 0.5; }
+    function loop() {
+      requestAnimationFrame(loop);
+      var r = document.documentElement.style, i, b = 0, h = 0;
+      if (playing && an && ctx.state === "running") {
+        an.getByteFrequencyData(fd);
+        for (i = 1; i < 7; i++) b += fd[i];
+        for (i = 30; i < 100; i++) h += fd[i];
+        b = Math.min(1, Math.pow(b / 6 / 255, 1.6) * 1.8);
+        h = Math.min(1, Math.pow(h / 70 / 255, 1.3) * 3.2);
+        beat = b > beat ? b : beat * 0.86 + b * 0.14;
+        treb = h > treb ? h : treb * 0.86 + h * 0.14;
+      } else { beat *= 0.9; treb *= 0.9; }
+      r.setProperty("--beat", beat.toFixed(3));
+      r.setProperty("--treb", treb.toFixed(3));
+    }
+    function setBtn() { var n = $("nowp"); n.textContent = playing ? "Now playing: " + (trackName || "Chromejack synth score") : "";
+      var b = $("musicBtn"); b.textContent = "Music: " + (playing ? "on" : "off"); b.setAttribute("aria-pressed", playing ? "true" : "false"); }
+    function start() {
+      if (!init()) { log("This browser can't play synthesized audio."); return; }
+      if (ctx.state === "suspended") ctx.resume();
+      playing = true;
+      if (el) { el.play().catch(function () {}); }
+      else if (!timer) { step = 0; nextT = ctx.currentTime + 0.08; timer = setInterval(pump, 40); }
+      setBtn();
+    }
+    function stop() {
+      playing = false;
+      if (timer) { clearInterval(timer); timer = null; }
+      if (el) { try { el.pause(); } catch (e) {} }
+      setBtn();
+    }
+    $("musicBtn").addEventListener("click", function () { playing ? stop() : start(); });
+    $("vol").addEventListener("input", function (e) {
+      vol = e.target.value / 100;
+      applyVol();
+    });
+    $("trackIn").addEventListener("change", function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      try {
+        stopTrack();
+        url = URL.createObjectURL(f);
+        if (!init()) throw new Error("no audio");
+        if (ctx.state === "suspended") ctx.resume();
+        el = new window.Audio(url); el.loop = true;
+        try { ctx.createMediaElementSource(el).connect(master); } catch (x) { el.volume = vol; }
+        trackName = f.name.replace(/\.[^.]+$/, "");
+        applyVol();
+        if (timer) { clearInterval(timer); timer = null; }
+        playing = true; setBtn();
+        el.play().then(function () { log("Now playing your track: " + f.name); }).catch(function () {
+          log("Couldn't play that file here. Using the built-in score.");
+          stopTrack(); playing = false; start();
+        });
+      } catch (err) { log("Couldn't load that file."); stopTrack(); }
+      e.target.value = "";
+    });
+    return {
+      mood: function (m) {
+        if (m === mode) return;
+        mode = m;
+        if (filt) filt.frequency.setTargetAtTime(m === 1 ? 3000 : (m === 2 ? 450 : 1400), ctx.currentTime, 0.3);
+      }
+    };
+  })();
+
+  var last = performance.now();
+  function tick() {
+    var now = performance.now(), dt = Math.min((now - last) / 1000, 1); last = now;
+    if (S.psy > 0) {
+      S.psy -= dt;
+      if (S.psy <= 0) { S.psy = 0; S.stab = 45; log("Signal back. You don't remember the last few seconds."); }
+    } else {
+      var p = cps() * dt; S.creds += p; S.run += p; S.all += p;
+      var rate = load() * 0.012 - 0.5;
+      if (S.sandy > 0) rate = rate > 0 ? rate * 2 + 0.8 : rate + 0.8;
+      S.stab = Math.max(0, Math.min(100, S.stab - rate * dt));
+      if (S.stab <= 0) { S.psy = 8; S.episodes++; S.sandy = 0; log("CYBERPSYCHOSIS. Your hands do things without you."); }
+    }
+    if (S.sandy > 0) S.sandy = Math.max(0, S.sandy - dt);
+    if (S.sandyCd > 0 && S.sandy <= 0) S.sandyCd = Math.max(0, S.sandyCd - dt);
+    if (S.inhCd > 0) S.inhCd = Math.max(0, S.inhCd - dt);
+    shardTimer -= dt; if (shardTimer <= 0) { spawnShard(); shardTimer = 25 + Math.random() * 35; }
+    flavorTimer -= dt; if (flavorTimer <= 0) { log(FLAVOR[Math.floor(Math.random() * FLAVOR.length)]); flavorTimer = 22 + Math.random() * 20; }
+    saveTimer -= dt; if (saveTimer <= 0) { saveTimer = 8; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+    render();
+  }
+  log("Deck booted. Tap the core to start hacking.");
+  setInterval(tick, 100);
+  window.addEventListener("pagehide", function () { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} });
+  render();
+})();
+</script>
+
+</html>
